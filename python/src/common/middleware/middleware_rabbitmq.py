@@ -66,7 +66,7 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
     
     def __init__(self, host, exchange_name, routing_keys):
         self.exchange_name = exchange_name
-        self.routing_keys = routing_keys
+        self.routing_keys = routing_keys        # aplica solo para el consumidor
 
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters(host=host)
@@ -75,8 +75,8 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
         self.channel = self.connection.channel()
         # --- hasta aca igual que la Queue
         self.channel.exchange_declare(
-            exchange=exchange_name,     # 
-            exchange_type="direct"      # es el default, solo aplica a las queues que tenga exactamente el mismo nombre del exchange
+            exchange=exchange_name,
+            exchange_type="direct"      # es el default, el exchange entrega el mensaje a las colas cuyos bindings tienen una routing_key exactamente igual a la routing_key del mensaje.
         )
         # genero una queue
         result = self.channel.queue_declare(
@@ -95,13 +95,38 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
             )
 
     def start_consuming(self, on_message_callback):
-        pass
+        def _rabbit_callback(channel, method, properties, body):
+            def ack():
+                self.channel.basic_ack(
+                    delivery_tag=method.delivery_tag
+                )
+
+            def nack():
+                self.channel.basic_nack(
+                    delivery_tag=method.delivery_tag
+                )
+
+            on_message_callback(body, ack, nack)
+        # ejecuta el callback cuando llega un mensaje
+        self.channel.basic_consume(
+            queue=self.queue_name,
+            on_message_callback=_rabbit_callback,
+            auto_ack=False      # no lo confirma automaticamnete, sino que usa las funciones ack y nack
+        )
+        self.channel.start_consuming()
     
     def stop_consuming(self):
-        pass
+        self.channel.stop_consuming()
     
     def send(self, message):
-        pass
+        # asumo que usa la primer routing_key debido a que es el consumidor
+        # en los tests aparece asi [routing_key], o sea un solo elemento
+        self.channel.basic_publish(
+            exchange=self.exchange_name,
+            routing_key=self.routing_keys[0],
+            body=message
+        )
 
     def close(self):
-        pass
+        self.channel.close()
+        self.connection.close()
