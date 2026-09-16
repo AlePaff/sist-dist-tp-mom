@@ -22,30 +22,38 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
             # arguments={"x-queue-type": "quorum"}
         )
 
-        # message = ' '.join(sys.argv[1:]) or "Hello World!"
-
-        # # publico un mensaje
-        # channel.basic_publish(
-        #     exchange="",
-        #     routing_key="hello",
-        #     body=message,
-        #     # we need to mark our messages as persistent - by supplying a delivery_mode property with the value of pika.DeliveryMode.Persistent
-        #     properties=pika.BasicProperties(
-        #         delivery_mode = pika.DeliveryMode.Persistent
-        #     )
-
-        # )
-
-        # print(f" [x] Sent {message}")
-
     def start_consuming(self, on_message_callback):
-        pass
+        def _rabbit_callback(channel, method, properties, body):
+
+            def ack():
+                self.channel.basic_ack(
+                    delivery_tag=method.delivery_tag
+                )
+
+            def nack():
+                self.channel.basic_nack(
+                    delivery_tag=method.delivery_tag
+                )
+
+            on_message_callback(body, ack, nack)
+        # ejecuta el callback cuando llega un mensaje
+        self.channel.basic_consume(
+            queue=self.queue_name,
+            on_message_callback=_rabbit_callback,
+            auto_ack=False      # no lo confirma automaticamnete, sino que usa las funciones ack y nack
+        )
+        self.channel.start_consuming()
     
     def stop_consuming(self):
-        pass
+        self.channel.stop_consuming()
     
     def send(self, message):
-        pass
+        # publico el mensaje recibido por parametro
+        self.channel.basic_publish(
+            exchange="",        # exchange por defecto: direct
+            routing_key=self.queue_name,        # envia solo a esta queue
+            body=message
+        )
 
     def close(self):
         # cerramos el canal y luego la conexion
@@ -57,4 +65,43 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
 class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
     
     def __init__(self, host, exchange_name, routing_keys):
+        self.exchange_name = exchange_name
+        self.routing_keys = routing_keys
+
+        self.connection = pika.BlockingConnection(
+            pika.ConnectionParameters(host=host)
+        )
+
+        self.channel = self.connection.channel()
+        # --- hasta aca igual que la Queue
+        self.channel.exchange_declare(
+            exchange=exchange_name,     # 
+            exchange_type="direct"      # es el default, solo aplica a las queues que tenga exactamente el mismo nombre del exchange
+        )
+        # genero una queue
+        result = self.channel.queue_declare(
+            queue="",
+            exclusive=True      # exlusive=True. una vez se cierre este programa, matar la cola
+        )
+        # guardo la cola
+        self.queue_name = result.method.queue
+
+        # bindeo cada cola al exchange, mediante la routing key pasada por parametro
+        for routing_key in routing_keys:
+            self.channel.queue_bind(
+                exchange=self.exchange_name,
+                queue=self.queue_name,
+                routing_key=routing_key
+            )
+
+    def start_consuming(self, on_message_callback):
+        pass
+    
+    def stop_consuming(self):
+        pass
+    
+    def send(self, message):
+        pass
+
+    def close(self):
         pass
