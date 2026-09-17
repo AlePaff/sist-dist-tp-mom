@@ -6,6 +6,7 @@ import pika
 connection = pika.BlockingConnection(
     pika.ConnectionParameters(host="localhost")
 )
+# BlockingConnection = bloquea y espera hasta que se pueda conectar, api sincrona
 
 # conexion con el receiver a traves de un channel
 channel = connection.channel()

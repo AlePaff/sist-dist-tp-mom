@@ -106,7 +106,7 @@ esta ultima le envia el mismo mensaje a las otras dos queues mediante un exchang
 * Cómo funciona: Ignora por completo las palabras clave (routing_key). Simplemente toma el mensaje y lo duplica para enviarlo a absolutamente todas las colas que estén conectadas a él.
 * Caso de uso ideal: Transmisión de datos en tiempo real (puntuaciones de fútbol, cotizaciones de bolsa) o sistemas de logs donde quieres que múltiples servicios guarden el mismo registro a la vez.
 
-2. Direct (El Cartero Preciso)
+2. Direct (El Cartero Preciso) - DEFAULT
 
 * Cómo funciona: El mensaje se envía únicamente a la cola cuya clave de conexión coincida exactamente con la routing_key del mensaje. Es una relación uno a uno por coincidencia exacta.
 * Caso de uso ideal: Clasificación estricta. Por ejemplo, si el mensaje tiene la clave error, solo va a la cola encargada de mandar alertas al equipo de soporte, ignorando las colas de info o warning.
