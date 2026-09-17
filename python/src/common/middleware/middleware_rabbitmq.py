@@ -15,25 +15,22 @@ _DISCONNECTED_ERRORS = (
 )
 
 
-
-# clase hija MessageMiddlewareQueueRabbitMQ, clase padre MessageMiddlewareQueue
 class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
 
     def __init__(self, host, queue_name):
         try:
-            # abre una conexión TCP/AMQP con RabbitMQ.
+            # abre una conexion TCP/AMQP con RabbitMQ.
             self.connection = pika.BlockingConnection(
                 pika.ConnectionParameters(host=host)
             )
 
             # conexion con el receiver a traves de un channel
             self.channel = self.connection.channel()
-            self.queue_name = queue_name        # seguro se necesita para mass tarde
+            self.queue_name = queue_name
 
             self.channel.queue_declare(
                 queue=queue_name,
                 # durable=True,               # se persiste en disco, sobrevive reboots de rabbitmq
-                # arguments={"x-queue-type": "quorum"}
             )
         # manejo de errores, desde el mas especifico al más generico
         except pika.exceptions.AMQPConnectionError as e:
@@ -136,7 +133,6 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
             )
 
             self.channel = self.connection.channel()
-            # --- hasta aca igual que la Queue
             self.channel.exchange_declare(
                 exchange=exchange_name,
                 exchange_type="direct"      # es el default, el exchange entrega el mensaje a las colas cuyos bindings tienen una routing_key exactamente igual a la routing_key del mensaje.
