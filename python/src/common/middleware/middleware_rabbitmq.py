@@ -1,6 +1,4 @@
 import pika
-import random
-import string
 from .middleware import (
     MessageMiddlewareQueue,
     MessageMiddlewareExchange,
@@ -9,12 +7,11 @@ from .middleware import (
     MessageMiddlewareCloseError,
 )
 
-# Errores de pika que consideramos "desconexión"
+# errores de pika que se condieran "desconexión"
 _DISCONNECTED_ERRORS = (
     pika.exceptions.AMQPConnectionError,
     pika.exceptions.StreamLostError,
     pika.exceptions.ConnectionClosedByBroker,
-    pika.exceptions.ConnectionWrongStateError,
 )
 
 
@@ -58,9 +55,9 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
                         delivery_tag=method.delivery_tag
                     )
                 except _DISCONNECTED_ERRORS as e:
-                    raise MessageMiddlewareDisconnectedError(...) from e
+                    raise MessageMiddlewareDisconnectedError(f"Se perdió la conexión al hacer ack en la queue {self.queue_name}") from e
                 except pika.exceptions.AMQPError as e:
-                    raise MessageMiddlewareMessageError(...) from e
+                    raise MessageMiddlewareMessageError(f"Error al hacer ack en la queue {self.queue_name}") from e
 
 
             def nack():
@@ -69,9 +66,9 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
                         delivery_tag=method.delivery_tag
                     )
                 except _DISCONNECTED_ERRORS as e:
-                    raise MessageMiddlewareDisconnectedError(...) from e
+                    raise MessageMiddlewareDisconnectedError(f"Se perdió la conexión al hacer nack en la queue {self.queue_name}") from e
                 except pika.exceptions.AMQPError as e:
-                    raise MessageMiddlewareMessageError(...) from e
+                    raise MessageMiddlewareMessageError(f"Error al hacer nack en la queue {self.queue_name}") from e
 
             on_message_callback(body, ack, nack)
         try:
@@ -92,9 +89,9 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
         try:
             self.channel.stop_consuming()
         except _DISCONNECTED_ERRORS as e:
-            raise MessageMiddlewareDisconnectedError(...) from e
+            raise MessageMiddlewareDisconnectedError(f"Se perdió la conexión al detener el consumo de la queue {self.queue_name}") from e
         except pika.exceptions.AMQPError as e:
-            raise MessageMiddlewareMessageError(...) from e
+            raise MessageMiddlewareMessageError(f"Error al detener el consumo de la queue {self.queue_name}") from e
 
     
     def send(self, message):
@@ -106,9 +103,9 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
                 body=message
             )
         except _DISCONNECTED_ERRORS as e:
-            raise MessageMiddlewareDisconnectedError(...) from e
+            raise MessageMiddlewareDisconnectedError(f"Se perdió la conexión al enviar mensaje a la queue {self.queue_name}") from e
         except pika.exceptions.AMQPError as e:
-            raise MessageMiddlewareMessageError(...) from e
+            raise MessageMiddlewareMessageError(f"Error al enviar mensaje a la queue {self.queue_name}") from e
 
 
     def close(self):
@@ -122,7 +119,7 @@ class MessageMiddlewareQueueRabbitMQ(MessageMiddlewareQueue):
         except _DISCONNECTED_ERRORS as e:
             raise MessageMiddlewareCloseError("Error al cerrar la conexión") from e
         except pika.exceptions.AMQPError as e:
-            raise MessageMiddlewareCloseError("Error al cerrar la conexión") from e
+            raise MessageMiddlewareCloseError("Error al cerrar la conexión. General") from e
 
 class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
     
@@ -160,9 +157,9 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
                     routing_key=routing_key
                 )
         except _DISCONNECTED_ERRORS as e:
-            raise MessageMiddlewareDisconnectedError(...) from e
+            raise MessageMiddlewareDisconnectedError(f"No se pudo conectar a RabbitMQ en {host} para el exchange {exchange_name}") from e
         except pika.exceptions.AMQPError as e:
-            raise MessageMiddlewareMessageError(...) from e
+            raise MessageMiddlewareMessageError(f"Error al inicializar el exchange {exchange_name} con routing keys {routing_keys}") from e
 
     def start_consuming(self, on_message_callback):
         def _rabbit_callback(channel, method, properties, body):
@@ -172,9 +169,9 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
                         delivery_tag=method.delivery_tag
                     )
                 except _DISCONNECTED_ERRORS as e:
-                    raise MessageMiddlewareDisconnectedError(...) from e
+                    raise MessageMiddlewareDisconnectedError(f"Se perdió la conexión al hacer ack en el exchange {self.exchange_name}") from e
                 except pika.exceptions.AMQPError as e:
-                    raise MessageMiddlewareMessageError(...) from e
+                    raise MessageMiddlewareMessageError(f"Error al hacer ack en el exchange {self.exchange_name}") from e
 
             def nack():
                 try:
@@ -182,9 +179,9 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
                         delivery_tag=method.delivery_tag
                     )
                 except _DISCONNECTED_ERRORS as e:
-                    raise MessageMiddlewareDisconnectedError(...) from e
+                    raise MessageMiddlewareDisconnectedError(f"Se perdió la conexión al hacer nack en el exchange {self.exchange_name}") from e
                 except pika.exceptions.AMQPError as e:
-                    raise MessageMiddlewareMessageError(...) from e
+                    raise MessageMiddlewareMessageError(f"Error al hacer nack en el exchange {self.exchange_name}") from e
 
             on_message_callback(body, ack, nack)
 
@@ -197,17 +194,17 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
             )
             self.channel.start_consuming()
         except _DISCONNECTED_ERRORS as e:
-            raise MessageMiddlewareDisconnectedError(...) from e
+            raise MessageMiddlewareDisconnectedError(f"Se perdió la conexión mientras se consumía del exchange {self.exchange_name}") from e
         except pika.exceptions.AMQPError as e:
-            raise MessageMiddlewareMessageError(...) from e
+            raise MessageMiddlewareMessageError(f"Error interno durante el consumo del exchange {self.exchange_name}") from e
     
     def stop_consuming(self):
         try:
             self.channel.stop_consuming()
         except _DISCONNECTED_ERRORS as e:
-            raise MessageMiddlewareDisconnectedError(...) from e
+            raise MessageMiddlewareDisconnectedError(f"Se perdió la conexión al detener el consumo del exchange {self.exchange_name}") from e
         except pika.exceptions.AMQPError as e:
-            raise MessageMiddlewareMessageError(...) from e
+            raise MessageMiddlewareMessageError(f"Error al detener el consumo del exchange {self.exchange_name}") from e
     
     def send(self, message):
         try:
@@ -219,9 +216,9 @@ class MessageMiddlewareExchangeRabbitMQ(MessageMiddlewareExchange):
                 body=message
             )
         except _DISCONNECTED_ERRORS as e:
-            raise MessageMiddlewareDisconnectedError(...) from e
+            raise MessageMiddlewareDisconnectedError(f"Se perdió la conexión al enviar mensaje al exchange {self.exchange_name}") from e
         except pika.exceptions.AMQPError as e:
-            raise MessageMiddlewareMessageError(...) from e
+            raise MessageMiddlewareMessageError(f"Error al enviar mensaje al exchange {self.exchange_name}") from e
 
     def close(self):
         try: 
