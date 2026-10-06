@@ -1,0 +1,27 @@
+Hola Alejandro,
+fueron realizadas las correcciones del TP-MOM. A continuación adjuntamos 
+los resultados y comentarios adicionales del corrector.
+
+Resultado: APROBADO
+
+Resumen Correcciones:
+- Manejo de errores: Regular
+- Ejecución de Tests: Bien
+
+
+Comentarios:
+- Si hay un error luego de realizar la conexión con Rabbit pero durante la 
+apertura de canal o creación de cola, no se libera la conexión con el 
+servidor
+- En el send se considera un único routing_key cuando debería utilizar 
+todos los configurados y enviar a dichos destinos
+- Mucho código duplicado entre el Exchange y el Queue. Se podría realizar 
+una clase base para heredar implementación.
+- en el close, no se considera que puede haber un error al cerrar el canal 
+y, por ese motivo, se saltearía el cierre de la conexión con Rabbit.
+- En los métodos start_consuming se sale con excepción MessageMiddleware* 
+siempre. Esto no es correcto cuando se utiliza el método stop_consuming o 
+close.
+
+Sistemas Distribuidos I.
+Equipo Docente.
